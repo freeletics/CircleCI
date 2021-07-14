@@ -205,26 +205,20 @@ jobs:
               jq -r .appId
               )
             echo $ID
-            
-      - run:
-          name: "Get app id"
-          command: |
+
+            echo "Retrive App ID"
             # Need to pause for some seconds so that the previous Upload can be fetched
             sleep 15
-            apt-get -y update && apt-get -y install jq
             APPID=$(curl -X GET https://api.kobiton.com/v1/apps -H "Authorization: Basic ${KOBITON_AUTH}"  -H 'Accept: application/json' | jq -c '.apps[] | select (.os =="ANDROID") | .id')
             echo "app id is: $APPID"
             echo "export APPID=${APPID}" >> $BASH_ENV
-      - run:
-          name: "Run tests"
-          command: |
-            echo "app id is: $APPID"
+
+            echo "Run tests"
             apt-get -y update && apt-get -y install git
             cd Appium_e2e_tests
             git checkout master
-            ./mvnw clean test -Dapp.os=ANDROID -Demails=${EMAILS} -Dis.kobiton=true -Dapp.and=${APPID}     
+            ./mvnw clean test -Dapp.os=ANDROID -Demails=${EMAILS} -Dis.kobiton=true -Dapp.and=${APPID}    
             
-
 
   run_appium_tests_ios:
     working_directory: /home/circleci/repo
@@ -288,6 +282,7 @@ jobs:
                )
               echo $ID
               
+            echo "Get App ID" 
             # Need to pause for some seconds so that the previous Upload can be fetched  
             sleep 15
             APPID=$(curl -X GET https://api.kobiton.com/v1/apps -H "Authorization: Basic ${KOBITON_AUTH}"  -H 'Accept: application/json' | jq -c '.apps[] | select (.os =="IOS") | .id')
@@ -297,6 +292,7 @@ jobs:
             $( jq -r '.values[1].value as $k | "export EMAILS=\($k)"' env.json)
             echo "$EMAILS"
 
+            echo "Run tests"
             cd Appium_e2e_tests
             git checkout master
             ./mvnw clean test -Dapp.os=IOS -Demails=${EMAILS} -Dis.kobiton=true -Dapp.ios=${APPID}
@@ -333,13 +329,13 @@ workflows:
   version: 2
 
   run_appium_tests_android:
-    triggers:
-      - schedule:
-          cron: "0 5 * * 1-5" # 05:00 UTC = 07:00 CEST
-          filters:
-            branches:
-              only:
-                - master
+    # triggers:
+    #   - schedule:
+    #       cron: "0 5 * * 1-5" # 05:00 UTC = 07:00 CEST
+    #       filters:
+    #         branches:
+    #           only:
+    #             - master
     jobs:
       - postman_test_data
       - assemble_freeletics_android_release
