@@ -168,14 +168,23 @@ jobs:
           no_output_timeout: 30m
           name: "Parse environment file containing the test data &update app to kobiton  and run tests"
           command: |
+            echo "Retrive E-mails"
+            apt-get -y update && apt-get -y install jq
+            $( jq -r '.values[1].value as $k | "export EMAILS=\($k)"' env.json)
+            echo "$EMAILS"
+
             echo "Deleting the old app version, otherwise kobiton doesnt work"
-            export DELETEID=$(curl -X GET https://api.kobiton.com/v1/apps -H "Authorization: Basic ${KOBITON_AUTH}"  -H 'Accept: application/json' | jq -c '.apps[] | select (.os =="ANDROID") | .versions[].id')
+            export DELETEID=$(curl -X GET https://api.kobiton.com/v1/apps \
+            -H "Authorization: Basic ${KOBITON_AUTH}" \
+            -H 'Accept: application/json' | 
+            jq -c '.apps[] | select (.os =="ANDROID") | .versions[].id')
             echo $DELETEID
-            curl -X DELETE https://api.kobiton.com/v1/app/versions/$DELETEID -H "Authorization: Basic ${KOBITON_AUTH}"
+            curl -X DELETE https://api.kobiton.com/v1/app/versions/$DELETEID \
+            -H "Authorization: Basic ${KOBITON_AUTH}"
 
             echo "Getting the presigned url"
-            export RESP=$(curl -X POST -H "Authorization: Basic ${KOBITON_AUTH}" -H "Content-type: application/json" -d "{\"filename\" : \"upload_new.apk\"}" https://api.kobiton.com/v1/apps/uploadUrl)
-            echo $$RESP
+            export RESP=$(curl -X -H "Authorization: Basic ${KOBITON_AUTH}" -H "Content-type: application/json" -d "{\"filename\" : \"upload_new.apk\"}" POST https://api.kobiton.com/v1/apps/uploadUrl)
+            echo $RESP
             $(echo $RESP | jq -r 'keys[] as $k | "export \($k)=\(.[$k])"')
             echo $url
             echo $appPath
@@ -193,18 +202,13 @@ jobs:
               -d "{\"filename\" :  \"upload_new.apk \", \"appPath\" :\"$appPath\"}")
 
             echo "Retrive App ID"
-            # We need to pause for some seconds so that the previous Upload can be fetched from Kobiton
+            # We need to pause for some seconds so that the previous upload can be fetched from Kobiton
             sleep 10
             APPID=$(curl -X GET https://api.kobiton.com/v1/apps \
             -H 'Authorization: Basic ${KOBITON_AUTH}' \
             -H 'Accept: application/json' | 
             jq -c '.apps[] | select (.os =="ANDROID") | .id')
             echo "App ID: ${APPID}"
-
-            # Retrieve E-mails
-            apt-get -y update && apt-get -y install jq
-            $( jq -r '.values[1].value as $k | "export EMAILS=\($k)"' env.json)
-            echo "$EMAILS"
 
             echo "Run tests"
             apt-get -y update && apt-get -y install git
