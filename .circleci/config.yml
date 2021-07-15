@@ -168,50 +168,43 @@ jobs:
           no_output_timeout: 30m
           name: "Parse environment file containing the test data &update app to kobiton  and run tests"
           command: |
-            apt-get -y update && apt-get -y install jq
-            $( jq -r '.values[1].value as $k | "export EMAILS=\($k)"' env.json)
-            echo "$EMAILS"
-
-            echo "Delete the old app version. otherwise kobiton doesnt work"
-
+            echo "Deleting the old app version, otherwise kobiton doesnt work"
             export DELETEID=$(curl -X GET https://api.kobiton.com/v1/apps -H "Authorization: Basic ${KOBITON_AUTH}"  -H 'Accept: application/json' | jq -c '.apps[] | select (.os =="ANDROID") | .versions[].id')
             echo $DELETEID
             curl -X DELETE https://api.kobiton.com/v1/app/versions/$DELETEID -H "Authorization: Basic ${KOBITON_AUTH}"
 
             echo "Getting the presigned url"
-
-            export RESP=$(curl -XPOST -H "Authorization: Basic ${KOBITON_AUTH}" -H "Content-type: application/json" -d "{
-                        \"filename\" : \"upload_new.apk\"}" https://api.kobiton.com/v1/apps/uploadUrl)
-
+            export RESP=$(curl -X POST -H "Authorization: Basic ${KOBITON_AUTH}" -H "Content-type: application/json" -d "{\"filename\" : \"upload_new.apk\"}" https://api.kobiton.com/v1/apps/uploadUrl)
             echo $$RESP
             $(echo $RESP | jq -r 'keys[] as $k | "export \($k)=\(.[$k])"')
-
             echo $url
             echo $appPath
 
             echo "Uploading to s3 bucket"
-
-            curl -T app/freeletics/build/outputs/apk/integrationApi/release/freeletics-integrationApi-release.apk\
-              -H "Content-Type: application/octet-stream" \
-              -H "x-amz-tagging: unsaved=true" \
-              -X PUT $url
+            echo $(curl -T app/freeletics/build/outputs/apk/integrationApi/release/freeletics-integrationApi-release.apk\
+              -H 'Content-Type: application/octet-stream' \
+              -H 'x-amz-tagging: unsaved=true' \
+              -X PUT $url)
 
             echo "Creating an upload on kobiton"
-
-            export ID=$(curl -X POST https://api.kobiton.com/v1/apps \
-              -H "Authorization: Basic ${KOBITON_AUTH}" \
+            echo $(curl -X POST https://api.kobiton.com/v1/apps \
+              -H 'Authorization: Basic ${KOBITON_AUTH}' \
               -H 'Content-Type: application/json' \
-              -d "{\"filename\" :  \"upload_new.apk \", \"appPath\" :\"$appPath\"}" |
-              jq -r .appId
-              )
-            echo $ID
+              -d "{\"filename\" :  \"upload_new.apk \", \"appPath\" :\"$appPath\"}")
 
             echo "Retrive App ID"
-            # Need to pause for some seconds so that the previous Upload can be fetched
-            sleep 15
-            APPID=$(curl -X GET https://api.kobiton.com/v1/apps -H "Authorization: Basic ${KOBITON_AUTH}"  -H 'Accept: application/json' | jq -c '.apps[] | select (.os =="ANDROID") | .id')
-            echo "app id is: $APPID"
-            echo "export APPID=${APPID}" >> $BASH_ENV
+            # We need to pause for some seconds so that the previous Upload can be fetched from Kobiton
+            sleep 10
+            APPID=$(curl -X GET https://api.kobiton.com/v1/apps \
+            -H 'Authorization: Basic ${KOBITON_AUTH}' \
+            -H 'Accept: application/json' | 
+            jq -c '.apps[] | select (.os =="ANDROID") | .id')
+            echo "App ID: ${APPID}"
+
+            # Retrieve E-mails
+            apt-get -y update && apt-get -y install jq
+            $( jq -r '.values[1].value as $k | "export EMAILS=\($k)"' env.json)
+            echo "$EMAILS"
 
             echo "Run tests"
             apt-get -y update && apt-get -y install git
@@ -329,13 +322,13 @@ workflows:
   version: 2
 
   run_appium_tests_android:
-    triggers:
-      - schedule:
-          cron: "0 5 * * 1-5" # 05:00 UTC = 07:00 CEST
-          filters:
-            branches:
-              only:
-                - master
+    # triggers:
+    #   - schedule:
+    #       cron: "0 5 * * 1-5" # 05:00 UTC = 07:00 CEST
+    #       filters:
+    #         branches:
+    #           only:
+    #             - master
     jobs:
       - postman_test_data
       - assemble_freeletics_android_release
