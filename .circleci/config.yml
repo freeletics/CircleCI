@@ -98,7 +98,7 @@ jobs:
           name: "Run collection"
           command: |
             cd postman-data-generator/appium_data
-            npx newman run appium_new_user_create.postman_collection.json -d registration_data_iterations.csv -e integration.postman_environment.json --export-environment env.json
+            npx newman run appium_new_user_create.postman_collection.json -d registration_data_iterations.csv -e ../environment_collections_integration.json --export-environment env.json
       - persist_to_workspace:
           root: postman-data-generator/appium_data
           paths:
@@ -170,7 +170,7 @@ jobs:
           command: |
             echo "Retrieve E-mail"
             apt-get -y update && apt-get -y install jq
-            $( jq -r '.values[1].value as $k | "export EMAILS=\($k)"' env.json)
+            $( jq -r '.values[11].value as $k | "export EMAILS=\($k)"' env.json)
             echo "$EMAILS"
 
             echo "Deleting the old app version. Otherwise kobiton doesnt work"
@@ -236,7 +236,7 @@ jobs:
           command: |
             echo "Retrieve Emails"
             apt-get -y update && apt-get -y install jq
-            $( jq -r '.values[1].value as $k | "export EMAILS=\($k)"' env.json)
+            $( jq -r '.values[11].value as $k | "export EMAILS=\($k)"' env.json)
             echo "$EMAILS"
 
             echo "Getting the presigned url"
@@ -297,12 +297,12 @@ jobs:
       - run:
           name: "Get user data to be deleted"
           command: |
-            jq '.values | [ (.[1].value / ","), (.[2].value / ",") ] | transpose | map({email_registered: .[0], id: .[1]})' env.json > data.json
+            jq '.values | [ (.[11].value / ","), (.[12].value / ",") ] | transpose | map({email_registered: .[0], id: .[1]})' env.json > data.json
       - run:
           name: "Run collection"
           command: |
             cd postman-data-generator/appium_data
-            npx newman run cleanup_users.json  -d ../../data.json -e integration.postman_environment.json --export-environment env.json
+            npx newman run cleanup_users.json  -d ../../data.json -e ../environment_collections_integration.json --export-environment env.json
 
  
 workflows:
