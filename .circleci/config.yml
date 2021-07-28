@@ -299,10 +299,15 @@ jobs:
           command: |
             jq '.values | [ (.[11].value / ","), (.[12].value / ",") ] | transpose | map({email_registered: .[0], id: .[1]})' env.json > data.json
       - run:
-          name: "Run collection"
+          name: "Run collection to delete subscriptions"
           command: |
             cd postman-data-generator/appium_data
-            npx newman run cleanup_users.json  -d ../../data.json -e ../environment_collections_integration.json --export-environment env.json
+            npx newman run cancel_subscription_local.postman_collection.json  -d ../../data.json -e ../environment_collections_integration.json
+      - run:
+          name: "Run collection to delete users"
+          command: |
+            cd postman-data-generator/appium_data
+            npx newman run cleanup_users.json  -d ../../data.json -e ../environment_collections_integration.json  
 
  
 workflows:
