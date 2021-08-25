@@ -62,10 +62,14 @@ commands:
   add_ssh_key:
     steps:
       - run:
-          name: "Adding Github ssh key."
+          name: "Adding Github ssh key"
           command: |
-            mkdir ~/.ssh
-            # Copied from checkout step
+            # creates .ssh folder if it does not exists
+            SSH_DIR="~/.ssh"
+            if [ ! -d "$SSH_DIR" ]; then
+              mkdir ~/.ssh
+              echo "Created ${DIR}"
+            fi
             echo 'github.com ssh-rsa AAAAB3NzaC1yc2EAAAABIwAAAQEAq2A7hRGmdnm9tUDbO9IDSwBK6TbQa+PXYPCPy6rbTrTtw7PHkccKrpp0yVhp5HdEIcKr6pLlVDBfOLX9QUsyCOV0wzfjIJNlGEYsdlLJizHhbn2mUjvSAHQqZETYP81eFzLQNnPHt4EVVUh7VfDESU84KezmD5QlWpXLmvU31/yMf+Se8xhHTvKSCZIFImWwoG6mbUoWf9nzpIoaSjB+weqqUUmpaaasXVal72J+UX2B+2RPW3RcT0eOzQgqlJL3RKrTJvdsjE3JEAvGq3lGHSZXy28G3skua2SmVi/w4yCE6gbODqnTWlg7+wC604ydGXA8VJiS5ap43JXiUFFAaQ==' >> ~/.ssh/known_hosts
 
   add_ssh_key_for_fetching_private_swift_packages:
@@ -222,8 +226,8 @@ jobs:
 
             # 7. Run the tests
 
-            apt-get -y update && apt-get -y install git
-            cd Appium_e2e_tests
+            apt-get -y update && apt-get -y install git #remove?
+            cd Appium_e2e_tests # don't move to a command because it's specific to the platform
             git checkout master
             ./mvnw clean test -Dapp.os=ANDROID -Demails=${EMAILS} -Dis.kobiton=true -Dapp.and=${APPID}     
         
