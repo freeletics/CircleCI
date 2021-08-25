@@ -62,13 +62,11 @@ commands:
   add_ssh_key:
     steps:
       - run:
-          name: "Adding Github ssh key."
+          name: "Adding Github ssh key"
           command: |
-            mkdir ~/.ssh
-            # Copied from checkout step
+            mkdir -p ~/.ssh
             echo 'github.com ssh-rsa AAAAB3NzaC1yc2EAAAABIwAAAQEAq2A7hRGmdnm9tUDbO9IDSwBK6TbQa+PXYPCPy6rbTrTtw7PHkccKrpp0yVhp5HdEIcKr6pLlVDBfOLX9QUsyCOV0wzfjIJNlGEYsdlLJizHhbn2mUjvSAHQqZETYP81eFzLQNnPHt4EVVUh7VfDESU84KezmD5QlWpXLmvU31/yMf+Se8xhHTvKSCZIFImWwoG6mbUoWf9nzpIoaSjB+weqqUUmpaaasXVal72J+UX2B+2RPW3RcT0eOzQgqlJL3RKrTJvdsjE3JEAvGq3lGHSZXy28G3skua2SmVi/w4yCE6gbODqnTWlg7+wC604ydGXA8VJiS5ap43JXiUFFAaQ==' >> ~/.ssh/known_hosts
 
-  # command
   add_ssh_key_for_fetching_private_swift_packages:
     steps:
       - add_ssh_keys:
@@ -85,17 +83,35 @@ commands:
             - "2a:e6:ed:7c:3b:61:f5:05:9a:d1:82:5f:38:21:5d:94"
       - set_ruby_version
 
+  checkout_appium_repo:
+    steps:
+      - add_ssh_key    
+      - run:
+          name: "Checkout Appium repo"
+          command: |
+            apt-get -y update && apt-get -y install git
+            git clone git@github.com:freeletics/Appium_e2e_tests.git
+            cd Appium_e2e_tests
+            git checkout master
+
+  checkout_postman_repo:
+    steps:
+      - add_ssh_key
+      - run:
+          name: "Checkout Postman Data Generator repo"
+          command: git clone git@github.com:freeletics/postman-data-generator.git
+
+
 jobs:
   postman_test_data:
     docker:
       - image: sirech/newman-executor:13.6
     steps:
-      - add_ssh_key
+      - attach_workspace:
+          at: .
+      - checkout_postman_repo
       - run:
-          name: "Checkout Postman data creation repo"
-          command: git clone git@github.com:freeletics/postman-data-generator.git
-      - run:
-          name: "Run collection"
+          name: "Run collection to create data"
           command: |
             cd postman-data-generator/appium_data
             npx newman run appium_new_user_create.postman_collection.json -d registration_data_iterations.csv -e ../environment_collections_integration.json --export-environment env.json
@@ -154,18 +170,8 @@ jobs:
       - checkout
       - attach_workspace:
           at: .
+      - checkout_appium_repo
       - run:
-          name: "Adding Github ssh key."
-          command: echo 'github.com ssh-rsa AAAAB3NzaC1yc2EAAAABIwAAAQEAq2A7hRGmdnm9tUDbO9IDSwBK6TbQa+PXYPCPy6rbTrTtw7PHkccKrpp0yVhp5HdEIcKr6pLlVDBfOLX9QUsyCOV0wzfjIJNlGEYsdlLJizHhbn2mUjvSAHQqZETYP81eFzLQNnPHt4EVVUh7VfDESU84KezmD5QlWpXLmvU31/yMf+Se8xhHTvKSCZIFImWwoG6mbUoWf9nzpIoaSjB+weqqUUmpaaasXVal72J+UX2B+2RPW3RcT0eOzQgqlJL3RKrTJvdsjE3JEAvGq3lGHSZXy28G3skua2SmVi/w4yCE6gbODqnTWlg7+wC604ydGXA8VJiS5ap43JXiUFFAaQ==' >> ~/.ssh/known_hosts
-      - run:
-          name: "Checkout Appium repo"
-          command: |
-            apt-get -y update && apt-get -y install git
-            git clone git@github.com:freeletics/Appium_e2e_tests.git
-            cd Appium_e2e_tests
-            git checkout master
-      - run:
-
         # In this part, we call some Kobiton API. These API are documented at https://api.kobiton.com/docs/#kobiton-api-v1-0
 
           no_output_timeout: 30m
@@ -221,9 +227,7 @@ jobs:
 
             # 7. Run the tests
 
-            apt-get -y update && apt-get -y install git
             cd Appium_e2e_tests
-            git checkout master
             ./mvnw clean test -Dapp.os=ANDROID -Demails=${EMAILS} -Dis.kobiton=true -Dapp.and=${APPID}     
         
   run_appium_tests_ios:
@@ -234,21 +238,8 @@ jobs:
       - checkout
       - attach_workspace:
           at: .
-      - add_ssh_keys
+      - checkout_appium_repo
       - run:
-          name: "Adding Github ssh key."
-          command: |
-            echo 'github.com ssh-rsa AAAAB3NzaC1yc2EAAAABIwAAAQEAq2A7hRGmdnm9tUDbO9IDSwBK6TbQa+PXYPCPy6rbTrTtw7PHkccKrpp0yVhp5HdEIcKr6pLlVDBfOLX9QUsyCOV0wzfjIJNlGEYsdlLJizHhbn2mUjvSAHQqZETYP81eFzLQNnPHt4EVVUh7VfDESU84KezmD5QlWpXLmvU31/yMf+Se8xhHTvKSCZIFImWwoG6mbUoWf9nzpIoaSjB+weqqUUmpaaasXVal72J+UX2B+2RPW3RcT0eOzQgqlJL3RKrTJvdsjE3JEAvGq3lGHSZXy28G3skua2SmVi/w4yCE6gbODqnTWlg7+wC604ydGXA8VJiS5ap43JXiUFFAaQ==' >> ~/.ssh/known_hosts
-      - run:
-          no_output_timeout: 15m
-          name: "Checkout Appium test repo"
-          command: |
-            apt-get -y update && apt-get -y install git
-            git clone git@github.com:freeletics/Appium_e2e_tests.git
-            cd Appium_e2e_tests
-            git checkout master
-      - run:
-
          # In this part, we call some Kobiton API. These API are documented at https://api.kobiton.com/docs/#kobiton-api-v1-0
 
           no_output_timeout: 30m
@@ -304,9 +295,7 @@ jobs:
 
             # 7. Run the tests
 
-            echo "Run tests"
             cd Appium_e2e_tests
-            git checkout master
             ./mvnw clean test -Dapp.os=IOS -Demails=${EMAILS} -Dis.kobiton=true -Dapp.ios=${APPID}
                       
   postman_delete_data:
@@ -315,17 +304,10 @@ jobs:
     resource_class: small
     working_directory: /home/circleci/repo
     steps:
+      - checkout
       - attach_workspace:
           at: .
-      - add_ssh_key
-      - run:
-          name: "Adding Github ssh key."
-          command: |
-            # Copied from checkout step
-            echo 'github.com ssh-rsa AAAAB3NzaC1yc2EAAAABIwAAAQEAq2A7hRGmdnm9tUDbO9IDSwBK6TbQa+PXYPCPy6rbTrTtw7PHkccKrpp0yVhp5HdEIcKr6pLlVDBfOLX9QUsyCOV0wzfjIJNlGEYsdlLJizHhbn2mUjvSAHQqZETYP81eFzLQNnPHt4EVVUh7VfDESU84KezmD5QlWpXLmvU31/yMf+Se8xhHTvKSCZIFImWwoG6mbUoWf9nzpIoaSjB+weqqUUmpaaasXVal72J+UX2B+2RPW3RcT0eOzQgqlJL3RKrTJvdsjE3JEAvGq3lGHSZXy28G3skua2SmVi/w4yCE6gbODqnTWlg7+wC604ydGXA8VJiS5ap43JXiUFFAaQ==' >> ~/.ssh/known_hosts
-      - run:
-          name: "Checkout Postman data creation repo"
-          command: git clone git@github.com:freeletics/postman-data-generator.git
+      - checkout_postman_repo
       - run:
           name: "Get user data to be deleted"
           command: |
