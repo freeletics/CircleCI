@@ -107,7 +107,7 @@ jobs:
     docker:
       - image: sirech/newman-executor:13.6
     steps:
-      - attach_workspace
+      - attach_workspace:
           at: .
       - checkout_postman_repo
       - run:
