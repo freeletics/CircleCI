@@ -337,11 +337,11 @@ workflows:
     #             - master
     jobs:
       - postman_test_data
-      #- assemble_freeletics_android_release
+      # - assemble_freeletics_android_release
       - run_appium_tests_android:
           requires:
             - postman_test_data
-            - assemble_freeletics_android_release
+            # - assemble_freeletics_android_release
       - postman_delete_data:
           requires:
             - run_appium_tests_android
